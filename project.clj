@@ -6,7 +6,5 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [org.clojure/core.match "0.3.0"]
-                 ;[org.clojure/core.set ]
-                 [org.clojure/math.numeric-tower "0.0.4"]
-                 [defun "0.3.1"]]
+                 [org.clojure/math.numeric-tower "0.0.4"]]
   :repl-options {:init-ns adventofcode2019.core})

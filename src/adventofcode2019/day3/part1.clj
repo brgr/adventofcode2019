@@ -1,8 +1,6 @@
 (ns adventofcode2019.day3.part1
   (:require [clojure.string :as str]
             [clojure.core.match :refer [match]]
-    ;[clojure.set :refer [set]]
-            [defun.core :refer [defun]]
             [clojure.math.numeric-tower :as math]
             [clojure.set :as set])
   (:use [adventofcode2019.core]))
