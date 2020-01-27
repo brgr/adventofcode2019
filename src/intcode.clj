@@ -79,7 +79,10 @@
           (assoc machine :state :halting)
           {:position      (+ position 2)
            :relative-base relative-base
-           :intcode       (assoc intcode third_parameter (first input))
+           ; Fixme: This currently only allows :position mode! If the intcode contains a 203 opcode, i.e. input in
+           ;  :relative mode, this needs to be able to handle this (the function would be the same as third_parameter,
+           ;  although with the 1st parameter, of course)
+           :intcode       (assoc intcode (get intcode (+ position 1)) (first input))
            :input         (rest input)
            :output        output
            :state         :running})
@@ -143,17 +146,18 @@
         (recur machine)))))
 
 (defn remove-last-output [{:keys [output] :as machine}]
+  ; Note: Since conj on sequences puts the next element in front, the last output is
+  ;  found at the first element
   (let [single_output (last output)
-        output (butlast output)
-        machine (assoc machine :output output)]
+        machine (assoc machine :output (butlast output))]
     [machine single_output]))
 
 (defn conj-input [{:keys [input] :as machine} new_single_input]
   (let [input (conj input new_single_input)]
-    (assoc machine :input input)))
+    (assoc machine :input (seq input))))
 
 (defn init-machine
-  ([intcode] {:position 0 :relative-base 0 :intcode intcode :input [] :output [] :state :running})
+  ([intcode] {:position 0 :relative-base 0 :intcode intcode :input '() :output '() :state :running})
   ([intcode input] {:position 0 :relative-base 0 :intcode intcode :input input :output [] :state :running}))
 
 (defn parse-input [input]
