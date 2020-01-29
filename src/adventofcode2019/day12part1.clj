@@ -81,57 +81,28 @@
   (map (fn [ms] [((ms :coordinates) k) ((ms :velocity) k)]) moon-states))
 
 (defn gcd [a b]
-  (case b
-    0 a
-    (recur b (mod a b))))
+  (if (zero? b) a (recur b (mod a b))))
 
 (defn least-common-multiple [x y z]
-  (do
-    (println x y z)
-    ;(let [first (/ (* x y) (gcd x y))]
-    ;  (/ (* first z) (gcd first z))))
-    x
-    ))
+  (let [first (/ (* x y) (gcd x y))]
+    (/ (* first z) (gcd first z))))
 
 (defn does-history-repeat-itself?
-  [[moon-states & _ :as all-moon-states] [all-x-states all-y-states all-z-states] [x-result y-result z-result] n]
-  (if (not (or (nil? x-result)
-               ;(nil? y-result)
-               ;(nil? z-result)
-               ))
+  [[moon-states & _ :as all-moon-states] [first-x-states first-y-states first-z-states] [x-result y-result z-result] n]
+  (if (not (or (nil? x-result) (nil? y-result) (nil? z-result)))
     (least-common-multiple x-result y-result z-result)
-    (do
-      ;(println (count all-x-states))
+    (let [next-moon-states (update-all-moons-once moon-states)
+          next-x-states (get-coordinates-and-velocity-for-key next-moon-states :x)
+          next-y-states (get-coordinates-and-velocity-for-key next-moon-states :y)
+          next-z-states (get-coordinates-and-velocity-for-key next-moon-states :z)]
+      (let [xi (or x-result (if (= next-x-states first-x-states) (+ 1 n) nil))
+            yi (or y-result (if (= next-y-states first-y-states) (+ 1 n) nil))
+            zi (or z-result (if (= next-z-states first-z-states) (+ 1 n) nil))]
+        (recur (cons next-moon-states all-moon-states)
+               [first-x-states first-y-states first-z-states]
+               [xi yi zi]
+               (+ n 1))))))
 
-      (let [next-moon-states (update-all-moons-once moon-states)
-            next-x-states (get-coordinates-and-velocity-for-key next-moon-states :x)
-            ;next-y-states (get-coordinates-and-velocity-for-key next-moon-states :y)
-            ;next-z-states (get-coordinates-and-velocity-for-key next-moon-states :z)
-            ]
-        (do
-          ;(println next-x-states)
-
-          (let [xi (or x-result (nth-if-contained all-x-states next-x-states))
-                ;yi (or y-result (nth-if-contained all-y-states next-y-states))
-                ;zi (or z-result (nth-if-contained all-z-states next-z-states))
-                ]
-            (recur (cons next-moon-states all-moon-states)
-                   [(cons next-x-states all-x-states)
-                    ;(cons next-y-states all-y-states)
-                    ;(cons next-z-states all-z-states)
-                    ]
-                   [xi
-                    ;yi
-                    ;zi
-                    ]
-                   (+ n 1))))))))
-
-; Es muessen sowohl die Koordinaten als auch die Geschwindigkeiten gleich sein.
-; D.h. also man muss einen Kreis finden im System.
-; Dann bilden aber auch die jeweilige Koordinaten mit der jeweiligen Geschwindigkeit einen Kreis,
-; weil ja nur die voneinander abhängen. D.h. ich kann jetzt die Schritte n_x finden, wann sich
-; also (x, v_x) wiederholt und genauso n_y und n_z. Die Gesamtschritte bis sich das gesamte
-; System wiederholt ist dann kgV(n_x, n_y, n_z).
 
 (defn -main []
   (let [moons moons
@@ -143,6 +114,20 @@
     (do
 
       ;(println later-moon-states)
-      ;(println later-moon-states)
-      (println (does-history-repeat-itself? [moon-states] [nil nil nil] [nil nil nil] 0))
+      (println (does-history-repeat-itself?
+                 [moon-states]
+                 [(get-coordinates-and-velocity-for-key moon-states :x)
+                  (get-coordinates-and-velocity-for-key moon-states :y)
+                  (get-coordinates-and-velocity-for-key moon-states :z)]
+                 [nil nil nil] 0))
       )))
+
+; Explanation (in german)
+; Ok, also dadurch dass ja Koordinaten+Velocities gleich sein müssen sind diese beiden States in einem Kreis zueinander. D.h. alle states die dazwischen sind auch davor und danach. Das muss deshalb so sein, weil wir ja sowohl f (also die Funktion, die den nächsten state definiert) als auch f^(-1) (also die Umkehrfunktion, d.h. die Funktion die den vorherigen state definiert) beide wohldefiniert haben.
+;
+;Daraus folgt, dass der erste State der wieder gleich ist ganz sicher dein allererster state war, da die ja, wie gesagt, in einem Kreis sind. Somit musst du immer nur mehr mit dem ersten State vergleichen und nicht mit allen allen States dazwischen (womit du dir ja schonmal mega viel Rechenleistung sparst!).
+;
+;Dazu kommt auch noch, dass du das kgV nutzen kannst, u…
+;Wenn sich zB. (x,vx) nach 3 Schritten wiederholt und (y,vy) nach 5, dann wiederholen sich ((x,vx), (y,vy)), d.h. die beiden zusammen, beim kgV dieser Schritte, also nach 15 Schritten. Das leuchtet denk ich ein: (x,vx) wiederholt bei: 3, 6, 9, 12, 15, 18, .... und (y, vy) bei: 5, 10, 15, 20, ...
+;Also sind sie alle beide das erste mal bei Schritt 15 (= kgv(3,5)) gleich. Wenn jetzt noch (z,vz) dazu kommt dann halt das kgv von allen drei.
+;D.h. mit diesen zwei Tricks (also dass es allgemein komplett zyklisch ist und man nur mehr den ersten State checken muss, und dass man die unabhängig checken und dann das kgv bilden kann) schafft man das jetzt dann mit ner sehr guten Laufzeit zu berechnen :)
