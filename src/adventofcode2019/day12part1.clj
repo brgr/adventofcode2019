@@ -71,19 +71,60 @@
 (defn contains-val-for-key-rec [[li & ls] x n]
   (cond
     (nil? li) nil
-    (= li x) n
+    (= li x) (do (println "found!") (+ 1 n))
     :else (recur ls x (+ n 1))))
 
 (defn nth-if-contained [l x]
   (contains-val-for-key-rec l x 0))
 
-(defn does-history-repeat-itself? [[moon-states & _ :as all-moon-states] n]
-  (let [next-moon-states (update-all-moons-once moon-states)]
-    (if-let [ni (nth-if-contained all-moon-states next-moon-states)]
-      (do
-        (println n ni)
-        (+ 1 ni))
-      (recur (cons next-moon-states all-moon-states) (+ n 1)))))
+(defn get-coordinates-and-velocity-for-key [moon-states k]
+  (map (fn [ms] [((ms :coordinates) k) ((ms :velocity) k)]) moon-states))
+
+(defn gcd [a b]
+  (case b
+    0 a
+    (recur b (mod a b))))
+
+(defn least-common-multiple [x y z]
+  (do
+    (println x y z)
+    ;(let [first (/ (* x y) (gcd x y))]
+    ;  (/ (* first z) (gcd first z))))
+    x
+    ))
+
+(defn does-history-repeat-itself?
+  [[moon-states & _ :as all-moon-states] [all-x-states all-y-states all-z-states] [x-result y-result z-result] n]
+  (if (not (or (nil? x-result)
+               ;(nil? y-result)
+               ;(nil? z-result)
+               ))
+    (least-common-multiple x-result y-result z-result)
+    (do
+      ;(println (count all-x-states))
+
+      (let [next-moon-states (update-all-moons-once moon-states)
+            next-x-states (get-coordinates-and-velocity-for-key next-moon-states :x)
+            ;next-y-states (get-coordinates-and-velocity-for-key next-moon-states :y)
+            ;next-z-states (get-coordinates-and-velocity-for-key next-moon-states :z)
+            ]
+        (do
+          ;(println next-x-states)
+
+          (let [xi (or x-result (nth-if-contained all-x-states next-x-states))
+                ;yi (or y-result (nth-if-contained all-y-states next-y-states))
+                ;zi (or z-result (nth-if-contained all-z-states next-z-states))
+                ]
+            (recur (cons next-moon-states all-moon-states)
+                   [(cons next-x-states all-x-states)
+                    ;(cons next-y-states all-y-states)
+                    ;(cons next-z-states all-z-states)
+                    ]
+                   [xi
+                    ;yi
+                    ;zi
+                    ]
+                   (+ n 1))))))))
 
 ; Es muessen sowohl die Koordinaten als auch die Geschwindigkeiten gleich sein.
 ; D.h. also man muss einen Kreis finden im System.
@@ -103,5 +144,5 @@
 
       ;(println later-moon-states)
       ;(println later-moon-states)
-      (println (does-history-repeat-itself? [moon-states] 0))
+      (println (does-history-repeat-itself? [moon-states] [nil nil nil] [nil nil nil] 0))
       )))
