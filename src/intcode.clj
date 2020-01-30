@@ -165,6 +165,9 @@
   (let [input (conj input new-single-input)]
     (assoc machine :input (seq input))))
 
+(defn clear-output [machine]
+  (assoc machine :output []))
+
 (defn init-machine
   ([intcode] {:position 0 :relative-base 0 :intcode intcode :input '() :output '() :state :running})
   ([intcode input] {:position 0 :relative-base 0 :intcode intcode :input input :output [] :state :running}))
