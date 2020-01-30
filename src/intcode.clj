@@ -101,7 +101,7 @@
          :relative-base relative-base
          :intcode       intcode
          :input         input
-         :output        (conj output first-parameter)
+         :output        (conj (vec output) first-parameter)
          :state         :running}
 
       5 {:position      (if (= first-parameter 0) (+ position 3) second-parameter)
@@ -175,6 +175,13 @@
 
 (defn -main []
   "Test the intcode runner with the intcode and input given in day 9"
-  (let [intcode (parse-input (slurp "resources/day9.input"))
-        machine (init-machine intcode [1])]
-    (println "Is the intcode runner correct:" (first ((run-machine machine) :output)))))
+  (let [
+        ; should produce a copy of itself as output
+        test-input1 "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
+
+        ; effective test input from day 9
+        test-input2 (slurp "resources/day9.input")
+
+        intcode (parse-input test-input1)
+        machine (init-machine intcode)]
+    (println "Is the intcode runner correct:" ((run-machine machine) :output))))
