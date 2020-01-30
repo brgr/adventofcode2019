@@ -1,5 +1,5 @@
 (ns adventofcode2019.day13part1
-  [intcode]
+  (:require [intcode])
   (:use [adventofcode2019.core]))
 
 (defn parse-statements [[[x y tile-id] & screen-statements] block-positions]
