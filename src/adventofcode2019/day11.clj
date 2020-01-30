@@ -1,4 +1,4 @@
-(ns adventofcode2019.day11part1
+(ns adventofcode2019.day11
   (:require [clojure.string :as str]
             [clojure.core.match :refer [match]]
             [clojure.math.numeric-tower :as math]
