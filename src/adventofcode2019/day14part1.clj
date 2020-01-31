@@ -5,68 +5,93 @@
 
 (defn to-resource-object [s]
   (let [[amount resource] (str/split s #" ")]
-    [(keyword resource) (Integer/parseInt amount)]))
+    {:resource resource :amount (Integer/parseInt amount)}))
 
 (defn parse-transformation [line]
   (let [[from to] (str/split line #" => ")
         from (str/split from #", ")
-        from (into {} (map to-resource-object from))]
+        from (map to-resource-object from)]
     [from (to-resource-object to)]))
 
 (defn parse-input [input]
   (map parse-transformation (str/split-lines input)))
 
-
 (defn get-transformation-for [[t & transformations] resource]
-  (let [t-resource (first (second t))]
+  (let [t-resource ((second t) :resource)]
     (if (= t-resource resource)
       t
       (recur transformations resource))))
 
+(defn contains-kv? [[c & cs] k v]
+  (if (nil? c)
+    false
+    (if (= (c k) v)
+      true
+      (recur cs k v))))
 
-(defn subtract-from-produces [produces produce]
-  (merge-with - produces (apply hash-map produce)))
+(defn get-produce [[p & produces] resource]
+  (if (nil? p)
+    nil
+    (if (= (p :resource) resource)
+      p
+      (recur produces resource))))
+
+
+(defn op-with-produce-amount [produces produce op]
+  (vec (map (fn [p] (if (= (p :resource) (produce :resource))
+                      {:resource (p :resource) :amount (op (p :amount) (produce :amount))}
+                      p))
+            produces)))
+
+(defn remove-from-produces [produces produce]
+  (op-with-produce-amount produces produce -))
 
 (defn add-to-produces [produces produce]
-  (merge-with + produces (apply hash-map produce)))
+  (if (contains-kv? produces :resource (produce :resource))
+    (op-with-produce-amount produces produce +)
+    (conj produces produce)))
 
 (defn smallest-multiple-greater-than [multiple x]
   "E.g., if multiple is 5 and x is 13, returns 15."
   (* multiple (first (drop-while (fn [i] (< (* multiple i) x)) (iterate inc 1)))))
 
-(defn get-transformations-for-multiple [transformations free-produces [resource amount]]
-  (let [[free-amount free-produces] (if (contains? free-produces resource)
-                                      (let [free-amount (free-produces resource)]
-                                        [free-amount (subtract-from-produces free-produces [resource free-amount])])
+(defn get-transformations-for-multiple [transformations free-produces {:keys [resource amount]}]
+  (let [[free-amount free-produces] (if-let [free-produce (get-produce free-produces resource)]
+                                      [(free-produce :amount) (remove-from-produces free-produces free-produce)]
                                       [0 free-produces])
 
         [from-produces result] (get-transformation-for transformations resource)
-        effective-amount (smallest-multiple-greater-than (second result) (- amount free-amount))
-        multiplier (/ effective-amount (second result))
+        effective-amount (smallest-multiple-greater-than (result :amount) (- amount free-amount))
+        multiplier (/ effective-amount (result :amount))
 
-        free-produce (assoc result 1 (+ free-amount (- effective-amount amount)))
+        free-produce (assoc result :amount (+ free-amount (- effective-amount amount)))
         free-produces (add-to-produces free-produces free-produce)]
-    [(into {} (map (fn [[k v]] [k (* v multiplier)]) from-produces)) free-produces]))
+    [(map #(update-in % [:amount] * multiplier) from-produces) free-produces]))
 
-(defn contains-enough? [produces produce-needed]
-  (and (contains? produces (first produce-needed)) (> (produces (first produce-needed)) (second produce-needed))))
+(defn contains-enough? [[p & produces] produce-needed]
+  (if (nil? p)
+    false
+    (if (and (= (p :resource) (produce-needed :resource))
+             (>= (p :amount) (produce-needed :amount)))
+      true
+      (recur produces produce-needed))))
 
 
-(defn back-transform-rec [transformations produce-needed free-produces]
-  (if (and (= (count produce-needed) 1) (contains? produce-needed :ORE))
-    (produce-needed :ORE)
-    (let [[next-produce produce-needed] (if (= :ORE (first (first produce-needed)))
-                                          [(last produce-needed) (into {} (butlast produce-needed))]
-                                          [(first produce-needed) (into {} (rest produce-needed))])]
-      (if (contains-enough? free-produces next-produce)
-        (recur transformations produce-needed (subtract-from-produces free-produces next-produce))
-        (let [[further-produce-needed free-produces] (get-transformations-for-multiple transformations free-produces next-produce)
-              produce-needed (merge-with + produce-needed further-produce-needed)]
-          (recur transformations produce-needed free-produces))))))
+(defn back-transform-rec [transformations [pn & produce-needed] free-produces amount-ore]
+  (if (nil? pn)
+    amount-ore
+    (if (= (pn :resource) "ORE")
+      (recur transformations produce-needed free-produces (+ amount-ore (pn :amount)))
+      (if (contains-enough? free-produces pn)
+        (recur transformations produce-needed (remove-from-produces free-produces pn) amount-ore)
+        (let [[further-produce-needed free-produces] (get-transformations-for-multiple transformations free-produces pn)
+              produce-needed (apply conj produce-needed further-produce-needed)]
+          (recur transformations produce-needed free-produces amount-ore))))))
 
 
 (defn count-ore-for-fuel [transformations]
-  (back-transform-rec transformations {:FUEL 1} {}))
+  (let [produce-needed (first (get-transformation-for transformations "FUEL"))]
+    (back-transform-rec transformations produce-needed [] 0)))
 
 
 (defn -main []
@@ -74,7 +99,7 @@
 
         ; test inputs
         ; this should produce 31 ORE for 1 FUEL
-        input "10 ORE => 10 A\n1 ORE => 1 B\n7 A, 1 B => 1 C\n7 A, 1 C => 1 D\n7 A, 1 D => 1 E\n7 A, 1 E => 1 FUEL"
+        ;input "10 ORE => 10 A\n1 ORE => 1 B\n7 A, 1 B => 1 C\n7 A, 1 C => 1 D\n7 A, 1 D => 1 E\n7 A, 1 E => 1 FUEL"
 
         ; this requires 165 ORE for 1 FUEL
         ;input "9 ORE => 2 A\n8 ORE => 3 B\n7 ORE => 5 C\n3 A, 4 B => 1 AB\n5 B, 7 C => 1 BC\n4 C, 1 A => 1 CA\n2 AB, 3 BC, 4 CA => 1 FUEL"
@@ -91,7 +116,7 @@
         transformations (parse-input input)]
     (do
       ;(println transformations)
-      ;(println (get-transformation-for transformations :FUEL))
+      ;(println (get-transformation-for transformations "FUEL"))
 
       (println (count-ore-for-fuel transformations))
 
