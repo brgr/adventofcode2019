@@ -52,22 +52,21 @@
   (and (contains? produces (first produce-needed)) (> (produces (first produce-needed)) (second produce-needed))))
 
 
-(defn back-transform-rec [transformations produce-needed free-produces amount-ore]
-  (if (empty? produce-needed)
-    amount-ore
-    (if (contains? produce-needed :ORE)
-      (recur transformations (dissoc produce-needed :ORE) free-produces (+ amount-ore (produce-needed :ORE)))
-      (let [next-produce (first produce-needed)
-            produce-needed (into {} (rest produce-needed))]
-        (if (contains-enough? free-produces next-produce)
-          (recur transformations produce-needed (subtract-from-produces free-produces next-produce) amount-ore)
-          (let [[further-produce-needed free-produces] (get-transformations-for-multiple transformations free-produces next-produce)
-                produce-needed (merge-with + produce-needed further-produce-needed)]
-            (recur transformations produce-needed free-produces amount-ore)))))))
+(defn back-transform-rec [transformations produce-needed free-produces]
+  (if (and (= (count produce-needed) 1) (contains? produce-needed :ORE))
+    (produce-needed :ORE)
+    (let [[next-produce produce-needed] (if (= :ORE (first (first produce-needed)))
+                                          [(last produce-needed) (into {} (butlast produce-needed))]
+                                          [(first produce-needed) (into {} (rest produce-needed))])]
+      (if (contains-enough? free-produces next-produce)
+        (recur transformations produce-needed (subtract-from-produces free-produces next-produce))
+        (let [[further-produce-needed free-produces] (get-transformations-for-multiple transformations free-produces next-produce)
+              produce-needed (merge-with + produce-needed further-produce-needed)]
+          (recur transformations produce-needed free-produces))))))
 
 
 (defn count-ore-for-fuel [transformations]
-  (back-transform-rec transformations {:FUEL 1} {} 0))
+  (back-transform-rec transformations {:FUEL 1} {}))
 
 
 (defn -main []
@@ -75,7 +74,7 @@
 
         ; test inputs
         ; this should produce 31 ORE for 1 FUEL
-        ;input "10 ORE => 10 A\n1 ORE => 1 B\n7 A, 1 B => 1 C\n7 A, 1 C => 1 D\n7 A, 1 D => 1 E\n7 A, 1 E => 1 FUEL"
+        input "10 ORE => 10 A\n1 ORE => 1 B\n7 A, 1 B => 1 C\n7 A, 1 C => 1 D\n7 A, 1 D => 1 E\n7 A, 1 E => 1 FUEL"
 
         ; this requires 165 ORE for 1 FUEL
         ;input "9 ORE => 2 A\n8 ORE => 3 B\n7 ORE => 5 C\n3 A, 4 B => 1 AB\n5 B, 7 C => 1 BC\n4 C, 1 A => 1 CA\n2 AB, 3 BC, 4 CA => 1 FUEL"
