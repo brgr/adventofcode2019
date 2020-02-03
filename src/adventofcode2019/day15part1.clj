@@ -48,26 +48,41 @@
     :right [(+ x 1) y]
     :left [(- x 1) y]))
 
+(defn get-droid-on-oxygen-station [droid area position]
+  (reduce (fn [[droid area] move]
+            (let [next-position (position-after-move position (key move))]
+              (if (or (contains? area next-position) (some (fn [e] (= 2 (val e))) area))
+                [droid area]
+                (let [[new-droid output] (move-repair-droid droid (val move))
+                      area (assoc area next-position output)]
+                  (if (zero? output)
+                    [droid area]
+                    (let [[new-droid area] (get-droid-on-oxygen-station new-droid area next-position)]
+                      (if (some (fn [e] (= 2 (val e))) area)
+                        [new-droid area]
+                        [droid area])))))))
+          [droid area] moves))
 
-(defn map-whole-field [droid area position]
+
+(defn map-whole-field [droid area position distance]
   (do
     (println position)
     (if (not (empty? area)) (println (str-area (assoc area position "x"))))
     ;(read-line)
 
-    (reduce (fn [[droid area] move]
+    (reduce (fn [[droid area highest-distance-so-far] move]
               (let [next-position (position-after-move position (key move))]
                 (if (contains? area next-position)
-                  [droid area]
+                  [droid area highest-distance-so-far]
                   (let [[new-droid output] (move-repair-droid droid (val move))
                         area (assoc area next-position output)]
                     (if (zero? output)
-                      [droid area]
-                      (let [[_ area highest-distance] (map-whole-field new-droid area next-position)]
-                        (if (> highest-distance)
-                          [droid area highest-distance]
-                          [droid area])))))))
-            [droid area] moves)))
+                      [droid area highest-distance-so-far]
+                      (let [[_ area new-highest-distance] (map-whole-field new-droid area next-position (+ distance 1))]
+                        (if (> new-highest-distance highest-distance-so-far)
+                          [droid area new-highest-distance]
+                          [droid area highest-distance-so-far])))))))
+            [droid area distance] moves)))
 
 (defn read-move []
   (let [input (read-line)]
@@ -100,7 +115,7 @@
         ]
     (do
       ;(println first-field)
-      (map-whole-field repair-droid {} [0 0]))))
+      (map-whole-field repair-droid {} [0 0] 0))))
 
 
 (def input (slurp "resources/day15.input"))
@@ -108,11 +123,16 @@
 
 (defn -main []
   (let [intcode (intcode/parse-input input)
-        [repair-droid area] (run-around-whole-field intcode)
+        ;[repair-droid area] (run-around-whole-field intcode)
+        [repair-droid area] (get-droid-on-oxygen-station (intcode/init-machine intcode) {} [0 0])
+        [repair-droid area max-distance] (map-whole-field repair-droid {} [0 0] 0)
         ]
     (do
       (println (str-area area))
+      ;(println (second (move-repair-droid (first (move-repair-droid repair-droid (moves :right))) (moves :left))))
       ;(println repair-droid)
+      (println "max distance found:" max-distance)
+
       )))
 
 ; Incorrect answers for part 2:
