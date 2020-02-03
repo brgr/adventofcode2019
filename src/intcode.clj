@@ -38,7 +38,7 @@
 ;; processing all parameters just like this and process them further when using them. This would have needed a little
 ;; more rewriting, however. Hence why it was so far not done this way.
 ; parameter_position in relation to opcode_position
-(defn- third-parameter [intcode instruction opcode-position relative-base parameter-position]
+(defn- parameter-to [intcode instruction opcode-position relative-base parameter-position]
   (let [mode (parameter-mode instruction (- parameter-position 1))
         parameter-value (geti intcode (+ opcode-position parameter-position))]
     (case mode
@@ -63,7 +63,7 @@
   (let [instruction (destructure-instruction (geti intcode position))
         first-parameter (parameter intcode instruction position relative-base 1)
         second-parameter (parameter intcode instruction position relative-base 2)
-        third-parameter (third-parameter intcode instruction position relative-base 3)]
+        third-parameter (parameter-to intcode instruction position relative-base 3)]
 
     (case (instruction :opcode)
       ;; 1 -- ADD -- Add 1st+2nd param and put result to 3rd
@@ -88,10 +88,7 @@
           (assoc machine :state :halting)
           {:position      (+ position 2)
            :relative-base relative-base
-           ; Fixme: This currently only allows :position mode! If the intcode contains a 203 opcode, i.e. input in
-           ;  :relative mode, this needs to be able to handle this (the function would be the same as third-parameter,
-           ;  although with the 1st parameter, of course)
-           :intcode       (assoc intcode (get intcode (+ position 1)) (first input))
+           :intcode       (assoc intcode (parameter-to intcode instruction position relative-base 1) (first input))
            :input         (rest input)
            :output        output
            :state         :running})
@@ -182,9 +179,10 @@
         ; should produce a copy of itself as output
         test-input1 "109,1,204,-1,1001,100,1,100,1008,100,16,101,1006,101,0,99"
 
-        ; effective test input from day 9
+        ; effective test input from day 9; given 1 as input, this should output 2775723069
+        ; if it does not output that, it should output the operation that does not work correctly
         test-input2 (slurp "resources/day9.input")
 
-        intcode (parse-input test-input1)
-        machine (init-machine intcode)]
-    (println "Is the intcode runner correct:" ((run-machine machine) :output))))
+        intcode2 (parse-input test-input2)
+        machine2 (init-machine intcode2 [1])]
+    (println "Is the intcode runner correct:" ((run-machine machine2) :output))))

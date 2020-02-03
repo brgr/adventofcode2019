@@ -2,7 +2,8 @@
   (:require [clojure.string :as str]
             [clojure.core.match :refer [match]]
             [clojure.math.numeric-tower :as math]
-            [clojure.set :as set])
+            [clojure.set :as set]
+            [intcode])
   (:use [adventofcode2019.core]))
 
 
