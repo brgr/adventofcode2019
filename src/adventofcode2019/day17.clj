@@ -30,8 +30,22 @@
                                               ;"O"
                                               [x y]
                                               ;(get line x)
-                                              ))))))
+                                              )))))))
+
+(defn get-lines-from-intersection [area [x y]]
+  ; todo: area is currently one string; starting from [x y], find the horizontal and vertical line surrounding it
+  ; this maybe trespasses another intersection; don't just use max x/y, as there could be another line later on!
   )
+
+(defn get-lines-rec [area [[x y] & intersections] lines]
+  (let [[line1 line2] (get-lines-from-intersection area [x y])
+        lines (conj lines line1 line2)]
+    (if (nil? intersections)
+      lines
+      (recur area intersections lines))))
+
+(defn get-lines [area intersections]
+  (get-lines-rec area intersections []))
 
 (defn -main []
   (let [input (slurp "resources/day17.input")
@@ -44,6 +58,6 @@
                   (apply str))]
     (do
       (println area)
-      (println (reduce + (map (fn [[x y]] (* x y)) (intersections area))))
+      (println (intersections area))
 
       )))

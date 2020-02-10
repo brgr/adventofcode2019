@@ -32,13 +32,18 @@
 
         ; test input 2
         ;input "80871224585914546619083218645595"
+        ; test input 3
+        input "03036732577212944063491565474664"
 
-        numbers (map (fn [i] (Integer/parseInt (str i))) input)]
+        numbers (map (fn [i] (Integer/parseInt (str i))) input)
+        ; TODO: this is too slow!
+        numbers (take (* (count numbers) 10000) (cycle numbers))
+        ]
     (do
       (println numbers)
 
       ;(println (repeat-each base-pattern 2))
       ;(println (take 100 (rest (cycle (repeat-each base-pattern 2)))))
-      (println (str/join (take 8 (nth (iterate transform-numbers numbers) 100))))
+      (println (nth (iterate transform-numbers numbers) 100))
 
       )))

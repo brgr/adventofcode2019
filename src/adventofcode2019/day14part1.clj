@@ -89,9 +89,8 @@
           (recur transformations produce-needed free-produces amount-ore))))))
 
 
-(defn count-ore-for-fuel [transformations]
-  (let [produce-needed (first (get-transformation-for transformations "FUEL"))]
-    (back-transform-rec transformations produce-needed [] 0)))
+(defn count-ore-for-fuel [transformations amount]
+  (back-transform-rec transformations [{:resource "FUEL" :amount amount}] [] 0))
 
 
 (defn -main []
@@ -118,7 +117,8 @@
       ;(println transformations)
       ;(println (get-transformation-for transformations "FUEL"))
 
-      (println (count-ore-for-fuel transformations))
+      ;(println (count-ore-for-fuel transformations 1))
+      (println (count-ore-for-fuel transformations 955854)) ; = 583060060057
 
       )))
 
