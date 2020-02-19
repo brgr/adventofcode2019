@@ -134,18 +134,57 @@
 
 (get-turning-sequence starting-point)
 
+(-> area)
+(def turning-sequence *1)
+
+(replace {[[:L 4] [:L 6]] :A} turning-sequence)
+
+
+; Trying out by hand I found out the following:
+;C =
+;[:R 12]
+;[:L 6]
+;[:L 6]
+;[:L 8]
+;
+;B =
+;[:L 4]
+;[:L 6]
+;[:L 8]
+;[:L 12]
+;
+;A =
+;[:L 8]
+;[:R 12]
+;[:L 12]
+;
+; and the sequence is
+; B A A B A C B C A C
+
+(def main-movement-routine "B,A,A,B,A,C,B,C,A,C\n")
+(def movement-function-a "L,8,R,12,L,12\n")
+(def movement-function-b "L,4,L,6,L,8,L,12\n")
+(def movement-function-c "R,12,L,6,L,6,L,8\n")
+(def no-continuous-video-feed "n\n")
+
+(def input-as-str
+  (str main-movement-routine
+       movement-function-a
+       movement-function-b
+       movement-function-c
+       no-continuous-video-feed))
+
+(def input-for-machine
+  (->> (map char input-as-str) (map int)))
+
 
 (defn -main []
   (let [input (slurp "resources/day17.input")
         intcode (intcode/parse-input input)
+        intcode (assoc intcode 0 2)
 
-        machine (intcode/init-machine intcode)
-        output ((intcode/run-machine machine) :output)
-        area (->> output
-                  (map char)
-                  (apply str))]
+        machine (intcode/init-machine intcode input-for-machine)]
     (do
-      (println area)
-      (println (intersections area))
+      (println (->> (intcode/run-machine machine) :output))
 
       )))
