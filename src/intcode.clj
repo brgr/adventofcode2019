@@ -162,6 +162,9 @@
   (let [input (conj input new-single-input)]
     (assoc machine :input (seq input))))
 
+(defn set-input [machine new-whole-input]
+  (assoc machine :input (seq new-whole-input)))
+
 (defn clear-output [machine]
   (assoc machine :output []))
 
